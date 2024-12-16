@@ -1,4 +1,4 @@
-from HiwonderSDK.Hiwonder import HiwonderRobot
+from Hiwonder import HiwonderRobot
 
 
 

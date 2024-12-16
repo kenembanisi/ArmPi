@@ -1,4 +1,7 @@
-import Board
+import os, sys
+print(os.getcwd())
+sys.path.append(os.getcwd()+'/HiwonderSDK/')
+from HiwonderSDK import Board
 from smbus2 import SMBus
 import time
 import numpy as np

@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-import os
 import sys
-sys.path.append('/home/pi/ArmPi/HiwonderSDK/')
 import time
-import RPi.GPIO as GPIO
 from BusServoCmd import *
+import RPi.GPIO as GPIO
 from smbus2 import SMBus, i2c_msg
 from rpi_ws281x import PixelStrip
 from rpi_ws281x import Color as PixelColor
