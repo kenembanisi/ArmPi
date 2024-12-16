@@ -101,7 +101,7 @@ class HiwonderRobot():
         while True:
             # read battery data
             self._batt_vol = self.bus.read_i2c_block_data(ENCODER_MOTOR_MODULE_ADDR, ADC_BAT_ADDR, 2)
-            print("V = {0}mV".format(self.batt_vol[0]+(self.batt_vol[1]<<8)))
+            print("V = {0}mV".format(self._batt_vol[0]+(self._batt_vol[1]<<8)))
             
             # read encoder data
             self._encoder_data = struct.unpack('iiii',bytes(self.bus.read_i2c_block_data(ENCODER_MOTOR_MODULE_ADDR, MOTOR_ENCODER_TOTAL_ADDR,16)))
