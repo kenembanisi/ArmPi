@@ -37,7 +37,8 @@ LOBOT_SERVO_LED_ERROR_WRITE      = 35
 LOBOT_SERVO_LED_ERROR_READ       = 36
 
 pi = pigpio.pi()  # 初始化 pigpio库
-serialHandle = serial.Serial("/dev/ttyAMA0", 115200)  # 初始化串口， 波特率为115200
+# serialHandle = serial.Serial("/dev/ttyAMA0", 115200)  # 初始化串口， 波特率为115200
+serialHandle = serial.Serial("/dev/ttyS0", 115200)  # 初始化串口， 波特率为115200
 
 rx_pin = 4
 tx_pin = 27
