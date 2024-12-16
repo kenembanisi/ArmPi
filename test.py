@@ -1,63 +1,69 @@
-# import time
-# import HiwonderSDK.Board as bd
+import smbus2 # install pip install smbus2
+import time
+import struct
 
-# print('''
-# **********************************************************
-# ********功能:幻尔科技树莓派扩展板，串口舵机控制例程*******
-# **********************************************************
-# ----------------------------------------------------------
-# Official website:http://www.lobot-robot.com/pc/index/index
-# Online mall:https://lobot-zone.taobao.com/
-# ----------------------------------------------------------
-# 以下指令均需在LX终端使用，LX终端可通过ctrl+alt+t打开，或点
-# 击上栏的黑色LX终端图标。
-# ----------------------------------------------------------
-# Usage:
-#     sudo python3 BusServoMove.py
-# ----------------------------------------------------------
-# Version: --V1.0  2020/08/12
-# ----------------------------------------------------------
-# Tips:
-#  * 按下Ctrl+C可关闭此次程序运行，若失败请多次尝试！
-# ----------------------------------------------------------
-# ''')
+# Define constants
+MOTOR_TYPE_JGB37_520_12V_110RPM = 3 # the magnetic ring generates 44 pulses per revolution, combined with a gear reduction ratio of 90 Default
 
-# while True:
-#     # 参数：参数1：舵机id; 参数2：位置; 参数3：运行时间
-#     Board.setBusServoPulse(2, 500, 500) # 2号舵机转到500位置，用时500ms
-#     time.sleep(0.5) # 延时时间和运行时间相同
-    
-#     Board.setBusServoPulse(2, 200, 500) #舵机的转动范围0-240度，对应的脉宽为0-1000,即参数2的范围为0-1000
-#     time.sleep(0.5)
-    
-#     Board.setBusServoPulse(2, 500, 200)
-#     time.sleep(0.2)
-    
-#     Board.setBusServoPulse(2, 200, 200)
-#     time.sleep(0.2)
-    
-#     Board.setBusServoPulse(2, 500, 500)  
-#     Board.setBusServoPulse(3, 300, 500)
-#     time.sleep(0.5)
-    
-#     Board.setBusServoPulse(2, 200, 500)  
-#     Board.setBusServoPulse(3, 500, 500)
-#     time.sleep(0.5)    
+I2C_PORT = 1
+ENCODER_MOTOR_MODULE_ADDR = 0x34
+MOTOR_TYPE_ADDR = 0x20
+MOTOR_ENCODER_POLARITY_ADDR = 0x21
+ADC_BAT_ADDR = 0x00
+MOTOR_ENCODER_TOTAL_ADDR = 0x60
+MOTOR_FIXED_PWM_ADDR = 0x31
+MOTOR_FIXED_SPEED_ADDR = 0x51
 
 
-print('Starting Test Script')
+#电机类型及编码方向极性
+MotorType = MOTOR_TYPE_JGB37_520_12V_110RPM
+MotorEncoderPolarity = 0
+
+bus = smbus2.SMBus(I2C_PORT)
+speed1 = [50,50,50,50]
+speed2 = [-50,-50,-50,-50]
+speed3 = [0,0,0,0]
+
+pwm1 = [50,50,50,50]
+pwm2 = [-100,-100,-100,-100]
+pwm3 = [0,0,0,0]
+
+def Motor_Init(): #电机初始化
+    bus.write_byte_data(ENCODER_MOTOR_MODULE_ADDR, MOTOR_TYPE_ADDR, MotorType)  #设置电机类型 (Set motor type)
+    time.sleep(0.5)
+    bus.write_byte_data(ENCODER_MOTOR_MODULE_ADDR, MOTOR_ENCODER_POLARITY_ADDR, MotorEncoderPolarity)  #设置编码极性 (Set encoding polarity)
+
+def main():
+    while True:
+      
+      # read battery data
+      battery = bus.read_i2c_block_data(ENCODER_MOTOR_MODULE_ADDR, ADC_BAT_ADDR)
+      print("V = {0}mV".format(battery[0]+(battery[1]<<8)))
+      
+      # read encoder data
+      Encode = struct.unpack('iiii',bytes(bus.read_i2c_block_data(ENCODER_MOTOR_MODULE_ADDR, MOTOR_ENCODER_TOTAL_ADDR,16)))
+      print("Encode1 = {0}  Encode2 = {1}  Encode3 = {2}  Encode4 = {3}".format(Encode[0],Encode[1],Encode[2],Encode[3]))
+      
+
+      # PWM control (note: PWM control is a continuous control process, if there is a delay, it will interrupt the operation of the motor)
+      #bus.write_i2c_block_data(MOTOR_ADDR, MOTOR_FIXED_PWM_ADDR,pwm1)
+      
+      
+      #固定转速控制 (fixed speed control)
+      # write motor speed data
+      bus.write_i2c_block_data(ENCODER_MOTOR_MODULE_ADDR, MOTOR_FIXED_SPEED_ADDR,speed1)
+      time.sleep(3)
+      bus.write_i2c_block_data(ENCODER_MOTOR_MODULE_ADDR, MOTOR_FIXED_SPEED_ADDR,speed2)
+      time.sleep(3)
+      
 
 
-def move_servo(cmd):
-    bd.setBusServoPulse(cmd[0], cmd[1], cmd[2])
-
-while True:
-    cmd_str = input('Enter ID, position and running time as [id, pos, time] = ')
-    cmd_str = cmd_str.split(',')
-    cmd = [int(x) for x in cmd_str]
-
-    print(f'id = {cmd[0]}, pos = {cmd[1]}, rt = {cmd[2]}')
-
-    move_servo(cmd)
+if __name__ == "__main__":
+    Motor_Init()
+    main()
 
 
+# RESOURCES:
+# 1. https://smbus2.readthedocs.io/en/latest/ 
+# 2. https://www.abelectronics.co.uk/kb/article/1094/i2c-part-4-programming-i2c-with-python
+# 3. https://drive.google.com/file/d/19BFlVI4pYvOb_Tf3MHPpHsck3rE9Yzpv/view
