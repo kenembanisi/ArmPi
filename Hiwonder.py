@@ -40,13 +40,14 @@ class HiwonderRobot():
         self._encoder_data = None
 
         # create a thread to handle reading data from the board
-        self.thread = Thread(target=self.read_data())
-        self.thread.daemon = True
-        self.thread.start()
+        # self.thread = Thread(target=self.read_data())
+        # self.thread.daemon = True
+        # self.thread.start()
         # self.thread.join()
 
     def initialize_motors(self):
         # initialize chassis motors
+        time.sleep(1)
         self.bus.write_byte_data(ENCODER_MOTOR_MODULE_ADDR, MOTOR_TYPE_ADDR, MotorType) # Set motor type
         time.sleep(0.5)
         self.bus.write_byte_data(ENCODER_MOTOR_MODULE_ADDR, MOTOR_ENCODER_POLARITY_ADDR, MotorEncoderPolarity)  # Set encoding polarity
@@ -95,18 +96,18 @@ class HiwonderRobot():
     def map_value(self, x: float):
         hw_min, hw_max = 0, 1000 # defined by the driver
         joint_min, joint_max = -150, 150
-        return (x - joint_min) * (hw_max - hw_min) / (joint_max - joint_min) + hw_min
+        return int((x - joint_min) * (hw_max - hw_min) / (joint_max - joint_min) + hw_min)
 
 
     def read_data(self):
-        while True:
-            # read battery data
-            self._batt_vol = self.bus.read_i2c_block_data(ENCODER_MOTOR_MODULE_ADDR, ADC_BAT_ADDR, 2)
-            # print("V = {0}mV".format(self._batt_vol[0]+(self._batt_vol[1]<<8)))
-            
-            # read encoder data
-            self._encoder_data = struct.unpack('iiii',bytes(self.bus.read_i2c_block_data(ENCODER_MOTOR_MODULE_ADDR, MOTOR_ENCODER_TOTAL_ADDR,16)))
-            # print("Encode1 = {0}  Encode2 = {1}  Encode3 = {2}  Encode4 = {3}".format(Encode[0],Encode[1],Encode[2],Encode[3]))
-            time.sleep(0.5)
+        # while True:
+        # read battery data
+        self._batt_vol = self.bus.read_i2c_block_data(ENCODER_MOTOR_MODULE_ADDR, ADC_BAT_ADDR, 2)
+        # print("V = {0}mV".format(self._batt_vol[0]+(self._batt_vol[1]<<8)))
+        
+        # read encoder data
+        self._encoder_data = struct.unpack('iiii',bytes(self.bus.read_i2c_block_data(ENCODER_MOTOR_MODULE_ADDR, MOTOR_ENCODER_TOTAL_ADDR,16)))
+        # print("Encode1 = {0}  Encode2 = {1}  Encode3 = {2}  Encode4 = {3}".format(Encode[0],Encode[1],Encode[2],Encode[3]))
+        # time.sleep(0.05)
 
         
