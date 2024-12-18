@@ -18,12 +18,12 @@ def main():
             elif case == 2:
                 val = input('Insert desired joint_id and joint angle: (e.g., 2, 30) ')
                 joint_id, theta = [int(s) for s in val.split(',')]
-                robot.move_joint(joint_id, theta)
+                robot.set_joint_value(joint_id, theta)
 
             elif case == 3:
                 val = input('Insert desired joint angles: (e.g., 2, 30, 20, 20, 30, 10) ')
                 thetalist = [int(s) for s in val.split(',')]
-                robot.move_joints(thetalist)
+                robot.set_joint_values(thetalist)
 
             else:
                 print('Please check entry!')
