@@ -71,7 +71,7 @@ class HiwonderRobot():
         print('Stopping Motors!!')
 
 
-    def move_joint(self, joint_id: int, theta: float, radians = False):
+    def set_joint_value(self, joint_id: int, theta: float, radians = False):
         if joint_id > 6 or joint_id < 1:
             print('Please set correct joint id within range (1-6)...')
             raise ValueError
@@ -80,8 +80,15 @@ class HiwonderRobot():
         self.board.setBusServoPulse(joint_id, self.map_value(theta), 500)
         time.sleep(self.joint_control_delay)
     
+    
+    def get_joint_value(self, joint_id: int):
+        if joint_id > 6 or joint_id < 1:
+            print('Please set correct joint id within range (1-6)...')
+            raise ValueError
+        return self.board.getBusServoPulse(joint_id)
+    
 
-    def move_joints(self, thetalist: list, radians = False):
+    def set_joint_values(self, thetalist: list, radians = False):
         if len(thetalist) != 6:
             print('Please supply 6 joint angles for the robot...')
             raise ValueError
