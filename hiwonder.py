@@ -77,7 +77,9 @@ class HiwonderRobot():
             raise ValueError
         else:
             # wheel speed range is -100 to 100
-            self.bus.write_i2c_block_data(ENCODER_MOTOR_MODULE_ADDR, MOTOR_FIXED_SPEED_ADDR, speed)
+            np.clip(speed, -100, 100)
+            speed_ = [int(s) for s in speed]
+            self.bus.write_i2c_block_data(ENCODER_MOTOR_MODULE_ADDR, MOTOR_FIXED_SPEED_ADDR, speed_)
             time.sleep(self.speed_control_delay)
 
 
@@ -110,7 +112,7 @@ class HiwonderRobot():
         print(f'wheel speed in rad/s: {speed_rad}')
 
         speed = [w*8.4 for w in speed_rad] # where 8.4 is the rad/s to the speed scale factor
-        # self.set_fixed_speed(speed)
+        self.set_fixed_speed(speed)
 
         print(f'Final speed to send: {speed}')
 
