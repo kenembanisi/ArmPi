@@ -72,6 +72,7 @@ class HiwonderRobot():
             print('Please set correct size of speed...')
             raise ValueError
         else:
+            # wheel speed range is -100 to 100
             self.bus.write_i2c_block_data(ENCODER_MOTOR_MODULE_ADDR, MOTOR_FIXED_SPEED_ADDR, speed)
             time.sleep(self.speed_control_delay)
 
@@ -97,7 +98,9 @@ class HiwonderRobot():
 
         # set the wheel speeds
         speed = [w0, w1, w2, w3]
-        self.set_fixed_speed(speed)
+        # self.set_fixed_speed(speed)
+
+        print(f'{speed}')
 
 
     def set_arm_velocity(self, vel: list):
