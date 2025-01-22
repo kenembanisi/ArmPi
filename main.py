@@ -1,38 +1,29 @@
-from Hiwonder import HiwonderRobot
-
+from hiwonder import HiwonderRobot
+from gamepad_control import GamepadControl
+import time
 
 
 def main():
     try:
         robot = HiwonderRobot()
+        gpc = GamepadControl()
 
         while True:
-            case = int(input('What control state do you want (1: motor, 2: inidivual joints, 3: all joints)? '))
-            print('\n')
-
-            if case == 1:
-                val = input('Insert desired speeds: (e.g., 10, 20, 10, 20) ')
-                speed = [int(s) for s in val.split(',')]
-                robot.set_fixed_speed(speed)
-
-            elif case == 2:
-                val = input('Insert desired joint_id and joint angle: (e.g., 2, 30) ')
-                joint_id, theta = [int(s) for s in val.split(',')]
-                robot.set_joint_value(joint_id, theta)
-
-            elif case == 3:
-                val = input('Insert desired joint angles: (e.g., 2, 30, 20, 20, 30, 10) ')
-                thetalist = [int(s) for s in val.split(',')]
-                robot.set_joint_values(thetalist)
-
-            else:
-                print('Please check entry!')
-                raise ValueError
             
+            cmds = gpc.get_gamepad_cmds()
+
+            print(f'MOBILE = [{cmds.base_vx} {cmds.base_vy} {cmds.base_w}]')
+            print(f'ARM = [{cmds.arm_vx} {cmds.arm_vy} {cmds.arm_vz}] \n')
+            
+            robot.set_robot_velocity(cmds)
+
             robot.read_data()
+
+            time.sleep(0.001)  # Limit loop speed
 
     except KeyboardInterrupt:
         robot.stop_motors()
+        print("done")
         
 
 

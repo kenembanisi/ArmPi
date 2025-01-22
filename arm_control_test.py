@@ -2,10 +2,8 @@
 # 1. Independent joint control using the gamepad
 # 2. End-effector control using RRMC
 
-
 import inputs
 import time
-
 
 # Get a list of gamepads
 gamepads = inputs.devices.gamepads
@@ -17,60 +15,45 @@ if not gamepads:
 gamepad = gamepads[0]
 print(f"Using gamepad: {gamepad}")
 
-
 # BTN_SOUTH -> A
 # BTN_EAST -> B
 # BTN_NORTH -> X
 # BTN_WEST -> Y
 # BTN_TR -> RB
 
-
 i = 0
+X, Y = 0, 0
+vx0, vy0, w0, vx, vy, w = 0, 0, 0, 0, 0, 0
+MOBILE_BASE_FLAG = False
 
 try:
     while True:
-        events = inputs.get_gamepad()
-        CMD_PRESS = False
+        # events = inputs.get_gamepad()
+        events = gamepad.read()
+        # MOBILE_BASE_FLAG = False
         speed = None
         for i, event in enumerate(events):
 
-            print(f'{1} - {event.code}')
-            # print(f'Event is {event.code}')
-            # if event.code == 'ABS_Y':
+            if event.ev_type != 'Sync':
 
-            if event.code == 'ABS_HAT0X':
-                # Y axis controls speed (inverted)
-                # speed = -event.state / 32768.0  # Normalize to -1.0 to 1.0
-                speed = event.state
-                # motor.set_speed(speed)
-
-                # print(f'cmd is {round(speed, 3)}')
-            # elif event.code == 'BTN_SOUTH': 
-            #   if event.state == 1:
-            #     print("Button A pressed")
-            #   else:
-            #     print("Button A released")
-
-            if speed is not None:
-                if event.code == 'BTN_SOUTH':
-                    print(f'Joint 1: {speed}')
-                elif event.code == 'BTN_EAST':
-                    print(f'Joint 2: {speed}')
-                elif event.code == 'BTN_WEST':
-                    print(f'Joint 3: {speed}')
-                elif event.code == 'BTN_NORTH':
-                    print(f'Joint 4: {speed}')
-                elif event.code == 'BTN_TR':
-                    print(f'Joint 5: {speed}')
-            
-            print(f'count {i}, speed is {speed}')
-            i+=1
-        
-        print('end of events \n')
-# 
-            # Add more event handling for other buttons or axes
-
-        time.sleep(0.005)  # Limit loop speed
+                # print(f'{event.ev_type} \
+                #         {event.code} \
+                #         {event.state}')
+                
+                if event.code == 'ABS_X':
+                    vy0 = event.state
+                if event.code == 'ABS_Y':
+                    vx0 = event.state
+                if event.code == 'ABS_Z':
+                    w0 = event.state
+                if event.code == 'BTN_WEST':
+                    MOBILE_BASE_FLAG = bool(event.state)
+#       
+        # print(MOBILE_BASE_FLAG)
+        if MOBILE_BASE_FLAG:
+            vx, vy, w = vx0, vy0, w0
+        print(f'[vx, vy, w] = [{vx}, {vy}, {w}]')
+        time.sleep(0.0005)  # Limit loop speed
 except inputs.DeviceDisconnectedError:
     print("Gamepad disconnected.")
     # motor.set_speed(0) # Stop motor on disconnect
