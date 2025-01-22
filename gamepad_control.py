@@ -60,8 +60,8 @@ class GamepadControl():
             # we set the range for vx, vy to -1 m/s to 1 m/s
             # w = -0.5 rad/s to 0.5 rad/s
 
-            gamepad_cmds.base_vx = self.map_value(self.abs_y, 1, -1)
-            gamepad_cmds.base_vy = self.map_value(self.abs_x, -1, 1)
+            gamepad_cmds.base_vx = self.map_value(self.abs_y, 0.5, -0.5)
+            gamepad_cmds.base_vy = self.map_value(self.abs_x, -0.5, 0.5)
             gamepad_cmds.base_w = self.map_value(self.abs_z, -0.5, 0.5)
 
             # print(f'vx = [{self.abs_x} -> {gamepad_cmds.base_vx}], \
