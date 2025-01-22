@@ -17,7 +17,7 @@ def main():
             
             robot.set_robot_velocity(cmds)
 
-            robot.read_data()
+            # robot.read_data()
 
             time.sleep(0.001)  # Limit loop speed
 
