@@ -79,4 +79,4 @@ class GamepadControl():
     def map_value(self, x: float, hw_min=0, hw_max=1):
         # hw_min, hw_max = 0, 1000 # defined by the driver
         joint_min, joint_max = 0, 255
-        return int((x - joint_min) * (hw_max - hw_min) / (joint_max - joint_min) + hw_min)
+        return (x - joint_min) * (hw_max - hw_min) / (joint_max - joint_min) + hw_min
