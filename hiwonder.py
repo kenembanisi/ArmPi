@@ -1,5 +1,5 @@
 import os, sys
-print(os.getcwd())
+# print(os.getcwd())
 sys.path.append(os.getcwd()+'/HiwonderSDK/')
 from HiwonderSDK import Board
 from smbus2 import SMBus
@@ -58,6 +58,10 @@ class HiwonderRobot():
 
     def initialize_motors(self):
         # initialize chassis motors
+
+
+        print(self.bus)
+        
         time.sleep(1)
         self.bus.write_byte_data(ENCODER_MOTOR_MODULE_ADDR, MOTOR_TYPE_ADDR, MotorType) # Set motor type
         time.sleep(0.5)
@@ -100,7 +104,7 @@ class HiwonderRobot():
         speed = [w0, w1, w2, w3]
         # self.set_fixed_speed(speed)
 
-        print(f'{speed}')
+        print(f'Final speed to send: {speed}')
 
 
     def set_arm_velocity(self, vel: list):
