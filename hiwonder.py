@@ -25,9 +25,9 @@ MOTOR_FIXED_SPEED_ADDR = 51 #0x51
 MotorType = MOTOR_TYPE_JGB37_520_12V_110RPM
 MotorEncoderPolarity = 0
 
-WHEEL_RADIUS = 4.7 # cm
-BASE_LENGTH_X = 9.6 # cm
-BASE_LENGTH_Y = 10.5 # cm
+WHEEL_RADIUS = 0.047 # m
+BASE_LENGTH_X = 0.096 # m
+BASE_LENGTH_Y = 0.105 # m
 
 
 class HiwonderRobot():
@@ -106,6 +106,9 @@ class HiwonderRobot():
 
         # convert from rad/s to hw speed range (-100 to 100)
         speed_rad = [w1, w3, w0, w2] # rearrangement to map to the hw wheel mapping
+
+        print(f'wheel speed in rad/s: {speed_rad}')
+
         speed = [w*8.4 for w in speed_rad] # where 8.4 is the rad/s to the speed scale factor
         # self.set_fixed_speed(speed)
 

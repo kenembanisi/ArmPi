@@ -64,9 +64,9 @@ class GamepadControl():
             gamepad_cmds.base_vy = self.map_value(self.abs_x, -1, 1)
             gamepad_cmds.base_w = self.map_value(self.abs_z, -0.5, 0.5)
 
-            print(f'vx = [{self.abs_x} -> {gamepad_cmds.base_vx}], \
-                   vy = [{self.abs_y} -> {gamepad_cmds.base_vy}] \
-                   w = [{self.abs_z} -> {gamepad_cmds.base_w}]')
+            # print(f'vx = [{self.abs_x} -> {gamepad_cmds.base_vx}], \
+            #        vy = [{self.abs_y} -> {gamepad_cmds.base_vy}] \
+            #        w = [{self.abs_z} -> {gamepad_cmds.base_w}]')
 
         if self.ARM_FLAG:
             gamepad_cmds.arm_vx = self.abs_x
