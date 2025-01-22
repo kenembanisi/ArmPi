@@ -61,7 +61,7 @@ class HiwonderRobot():
 
 
         print(self.bus)
-        
+
         time.sleep(1)
         self.bus.write_byte_data(ENCODER_MOTOR_MODULE_ADDR, MOTOR_TYPE_ADDR, MotorType) # Set motor type
         time.sleep(0.5)
@@ -100,8 +100,13 @@ class HiwonderRobot():
         w2 = (u.vx + u.vy - u.w * (BASE_LENGTH_X + BASE_LENGTH_Y)) / WHEEL_RADIUS
         w3 = (u.vx - u.vy + u.w * (BASE_LENGTH_X + BASE_LENGTH_Y)) / WHEEL_RADIUS
 
-        # set the wheel speeds
-        speed = [w0, w1, w2, w3]
+        # u.vx, u.vy are in m/s
+        # u.w is in rad/s
+        # wi is in rad/s
+
+        # convert from rad/s to hw speed range (-100 to 100)
+        speed_rad = [w1, w3, w0, w2] # rearrangement to map to the hw wheel mapping
+        speed = [w*8.4 for w in speed_rad] # where 8.4 is the rad/s to the speed scale factor
         # self.set_fixed_speed(speed)
 
         print(f'Final speed to send: {speed}')
