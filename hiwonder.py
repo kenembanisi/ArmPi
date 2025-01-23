@@ -40,7 +40,7 @@ class HiwonderRobot():
         # initialize chassis motors
         self.initialize_motors()
         
-        self.speed_control_delay = 1.0
+        self.speed_control_delay = 0.25
         self.joint_control_delay = 0.25
 
         self._batt_vol = None
@@ -58,10 +58,6 @@ class HiwonderRobot():
 
     def initialize_motors(self):
         # initialize chassis motors
-
-
-        print(self.bus)
-
         time.sleep(1)
         self.bus.write_byte_data(ENCODER_MOTOR_MODULE_ADDR, MOTOR_TYPE_ADDR, MotorType) # Set motor type
         time.sleep(0.5)
@@ -96,11 +92,22 @@ class HiwonderRobot():
 
 
     def set_base_velocity(self, u: ut.Controls):
+        """
+        motor3 w0|  ↑  |w1 motor1
+                 |     |
+        motor4 w2|     |w3 motor2
+        
+        """
+        # clip desired velocity to 0 if less than 0.009
+        vx = u.vx if abs(u.vx) > 0.009 else 0.0
+        vy = u.vy if abs(u.vy) > 0.009 else 0.0
+        w = u.w if abs(u.w) > 0.009 else 0.0
+
         # compute wheel speeds
-        w0 = (u.vx - u.vy - u.w * (BASE_LENGTH_X + BASE_LENGTH_Y)) / WHEEL_RADIUS
-        w1 = (u.vx + u.vy + u.w * (BASE_LENGTH_X + BASE_LENGTH_Y)) / WHEEL_RADIUS
-        w2 = (u.vx + u.vy - u.w * (BASE_LENGTH_X + BASE_LENGTH_Y)) / WHEEL_RADIUS
-        w3 = (u.vx - u.vy + u.w * (BASE_LENGTH_X + BASE_LENGTH_Y)) / WHEEL_RADIUS
+        w0 = (vx - vy - w * (BASE_LENGTH_X + BASE_LENGTH_Y)) / WHEEL_RADIUS
+        w1 = (vx + vy + w * (BASE_LENGTH_X + BASE_LENGTH_Y)) / WHEEL_RADIUS
+        w2 = (vx + vy - w * (BASE_LENGTH_X + BASE_LENGTH_Y)) / WHEEL_RADIUS
+        w3 = (vx - vy + w * (BASE_LENGTH_X + BASE_LENGTH_Y)) / WHEEL_RADIUS
 
         # u.vx, u.vy are in m/s
         # u.w is in rad/s
@@ -112,9 +119,11 @@ class HiwonderRobot():
         print(f'wheel speed in rad/s: {speed_rad}')
 
         speed = [w*8.4 for w in speed_rad] # where 8.4 is the rad/s to the speed scale factor
+        print(f'Final speed to send: {speed}')
+
         self.set_fixed_speed(speed)
 
-        print(f'Final speed to send: {speed}')
+        
 
 
     def set_arm_velocity(self, vel: list):
