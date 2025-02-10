@@ -1,8 +1,10 @@
 import os, sys
+sys.path.append(os.getcwd()+'/HiwonderSDK/')
+from HiwonderSDK import Board
 import time
 import numpy as np
 import struct
-from threading import Thread
+import threading
 from smbus2 import SMBus
 from hiwonder_servo_serialproxy import SerialProxy
 from arm_models import FiveDOFRobot
@@ -34,15 +36,16 @@ class HiwonderRobot():
 
     def __init__(self):
         # initialize the i2c bus & module board
-        self.bus = SMBus(I2C_PORT) # assuming the first (and perhaps only) i2c device
-        # self.board = Board
+        # self.bus = SMBus(I2C_PORT) # assuming the first (and perhaps only) i2c device
+        self.serial_lock = threading.Lock()
+        self.board = Board
 
         # initialize serial proxy
-        self.serial_proxy = SerialProxy(port_name=SERIAL_PORT)
-        self.serial_proxy.connect()
+        # self.serial_proxy = SerialProxy(port_name=SERIAL_PORT)
+        # self.serial_proxy.connect()
 
         # initialize chassis motors
-        self.initialize_motors()
+        # self.initialize_motors()
         
         self.speed_control_delay = 0.25
         self.joint_control_delay = 0.25
@@ -50,8 +53,9 @@ class HiwonderRobot():
         self._encoder_data = None
 
         # create a thread to handle reading data from the board
-        self.thread = Thread(target=self.read_data, daemon=True)
+        self.thread = threading.Thread(target=self.read_joint_data, daemon=True)
         self.thread.start()
+        self.joint_values = [0]*6
 
         # initialize the five-dof robot model
         self.model = FiveDOFRobot()
@@ -88,10 +92,13 @@ class HiwonderRobot():
         u.vx = cmd.base_vx
         u.vy = cmd.base_vy
         u.w = cmd.base_w
-        self.set_base_velocity(u)
+        # self.set_base_velocity(u)
 
         # set the arm end effector velocity
-        # TBA
+        # self.set_arm_velocity(cmd)
+        self.set_arm_positions(cmd)
+
+        
 
 
     def set_base_velocity(self, u: ut.Controls):
@@ -145,6 +152,22 @@ class HiwonderRobot():
         self.set_joint_values(theta)
 
 
+    def set_arm_positions(self, cmd):
+        theta = self.joint_values.copy()
+
+        # Update joint angles
+        theta[0] += 800 * cmd.arm_j1
+        theta[1] += 800 * cmd.arm_j2
+        theta[2] += 800 * cmd.arm_j3
+        theta[3] += 800 * cmd.arm_j4
+        theta[4] += 800 * cmd.arm_j5
+
+        # set new joint angles
+        print(f'theta: {theta}')
+        self.set_joint_values(theta)
+
+
+
     def read_data(self):
         while True:
             try:
@@ -154,10 +177,21 @@ class HiwonderRobot():
             except Exception as e:
                 print(f"Error reading data: {e}")
 
+
+    def read_joint_data(self):
+        while True:
+            try:
+                self.joint_values = self.get_joint_values()
+                time.sleep(0.05)  # Slightly longer sleep to prevent excessive CPU usage
+            except KeyboardInterrupt:
+                print('Ending joint data reading thread')
+                break
+            
         
     def stop_motors(self):
         stop_speed = [0]*4
         self.bus.write_i2c_block_data(ENCODER_MOTOR_MODULE_ADDR, MOTOR_FIXED_SPEED_ADDR, stop_speed)
+        self.bus.close()
         print('Stopping Motors!!')
 
     # -------------------------------------------------------------
@@ -170,39 +204,73 @@ class HiwonderRobot():
         if radians:
             theta = np.rad2deg(theta)
         theta = np.clip(theta, -150, 150)
-        # self.board.setBusServoPulse(joint_id, self.map_value(theta), 500)
-        self.serial_proxy.set_position(joint_id, self.map_value(theta), 500)
+
+        # print("[DEBUG] Trying to acquire serial lock in set_joint_value")
+        with self.serial_lock:
+            # print("[DEBUG] Acquired serial lock in set_joint_value")
+            self.board.setBusServoPulse(joint_id, self.angle_to_pulse(theta), 500)
+        # print("[DEBUG] Released serial lock in set_joint_value")
+
+        print(f'[DEBUG] Moving to [{theta}] deg or [{self.angle_to_pulse(theta)}] pulse')
+        # self.serial_proxy.set_position(joint_id, self.map_value(theta), 500)
         time.sleep(self.joint_control_delay)
 
 
-    def set_joint_values(self, thetalist: list, radians = False):
+    def set_joint_values(self, thetalist: list, radians=False):
         if len(thetalist) != 6:
-            print('Please supply 6 joint angles for the robot...')
-            raise ValueError
+            raise ValueError("Please supply 6 joint angles for the robot.")
+        
         if radians:
-            for i in range(len(thetalist)):
-                thetalist[i] = np.rad2deg(thetalist[i])
-        for id, th in enumerate(thetalist):
-            # self.board.setBusServoPulse(id, self.map_value(th), 500)
-            self.serial_proxy.set_position(id, self.map_value(th), 500)
-            time.sleep(self.joint_control_delay)
+            thetalist = [np.rad2deg(theta) for theta in thetalist]
+        
+        # print("[DEBUG] Trying to acquire serial lock in set_joint_values")
+        if self.serial_lock.acquire(timeout=1):  # Try for 1 second
+            try:
+                # print("[DEBUG] Acquired lock in set_joint_values")
+                for id, theta in enumerate(thetalist):
+                    self.board.setBusServoPulse(id+1, self.angle_to_pulse(theta), 200)
+            finally:
+                self.serial_lock.release()
+                # print("[DEBUG] Released lock in set_joint_values")
+        else:
+            print("[WARNING] set_joint_values could not acquire lock!")
+        
+        time.sleep(self.joint_control_delay)
+        
    
     
     def get_joint_value(self, joint_id: int):
-        if joint_id >= len(self.serial_proxy.current_state):
-            print('Please set correct joint id within range (1-6)...')
-            raise ValueError
-        # return self.board.getBusServoPulse(joint_id)
-        return self.serial_proxy.current_state[joint_id]
+        if not (1 <= joint_id <= 6):
+            raise ValueError("Joint ID must be between 1 and 6.")
+        
+        # print("[DEBUG] Trying to acquire serial lock in get_joint_value")
+        if self.serial_lock.acquire(timeout=0.5):  # Attempt to acquire lock
+            try:
+                # print("[DEBUG] Acquired lock in get_joint_value")
+                return self.pulse_to_angle(self.board.getBusServoPulse(joint_id))
+            finally:
+                self.serial_lock.release()
+                # print("[DEBUG] Released lock in get_joint_value")
+        else:
+            print("[WARNING] get_joint_value could not acquire lock!")
+            return None  # Return None or handle appropriately
+        
     
     
     def get_joint_values(self):
-        return [self.serial_proxy.current_state[id] if id < len(self.serial_proxy.current_state) else None for id in range(6)]
+        # return [self.joints_state[id] for id in range(6)]
+        return [self.get_joint_value(id) for id in range(1, 7)]
 
 
-    def map_value(self, x: float):
+    def angle_to_pulse(self, x: float):
         hw_min, hw_max = 0, 1000 # defined by the driver
         joint_min, joint_max = -150, 150
         return int((x - joint_min) * (hw_max - hw_min) / (joint_max - joint_min) + hw_min)
+    
+    
+    def pulse_to_angle(self, x: float):
+        hw_min, hw_max = 0, 1000 # defined by the driver
+        joint_min, joint_max = -150, 150
+        return round((x - hw_min) * (joint_max - joint_min) / (hw_max - hw_min) + joint_min, 2)
 
 

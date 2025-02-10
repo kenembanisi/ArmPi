@@ -43,14 +43,20 @@ def main():
                 # print(f'MOBILE = [{i}][{round(cmds.base_vx,3)} {round(cmds.base_vy,3)} {round(cmds.base_w,3)}]')
                 # print(f'ARM = [{i}][{round(cmds.arm_vx,3)} {round(cmds.arm_vy,3)} {round(cmds.arm_vz,3)}] \n')
 
-                utils.print_dataclass(cmds)
+                # utils.print_dataclass(cmds)
             
-            robot.set_robot_velocity(cmds)
+                robot.set_robot_velocity(cmds)
+                print(f'Joint values = {robot.joint_values}')
+
+                # values = robot.get_joint_values()
+                # print(f"[MAIN] Direct Joint Values: {values}")
+
+                # print(f"[CHECK] Thread Alive? {robot.thread.is_alive()}")
 
             # robot.read_data()
 
             i += 1
-            time.sleep(0.1)  # Limit loop speed
+            time.sleep(0.05)  # Limit loop speed
 
     except KeyboardInterrupt:
         robot.stop_motors()

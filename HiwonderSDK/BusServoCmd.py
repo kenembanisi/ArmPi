@@ -38,7 +38,7 @@ LOBOT_SERVO_LED_ERROR_READ       = 36
 
 pi = pigpio.pi()  # 初始化 pigpio库
 # serialHandle = serial.Serial("/dev/ttyAMA0", 115200)  # 初始化串口， 波特率为115200
-serialHandle = serial.Serial("/dev/ttyS0", 115200)  # 初始化串口， 波特率为115200
+serialHandle = serial.Serial("/dev/ttyS0", 115200, timeout=1)  # 初始化串口， 波特率为115200
 
 rx_pin = 4
 tx_pin = 27
@@ -129,26 +129,23 @@ def serial_servo_read_cmd(id=None, r_cmd=None):
     time.sleep(0.00034)
 
 def serial_servo_get_rmsg(cmd):
-    '''
-    # 获取指定读取命令的数据
-    :param cmd: 读取命令
-    :return: 数据
-    '''
-    serialHandle.flushInput()  # 清空接收缓存
-    portRead()  # 将单线串口配置为输入
-    time.sleep(0.005)  # 稍作延时，等待接收完毕
-    count = serialHandle.inWaiting()    # 获取接收缓存中的字节数
-    if count != 0:  # 如果接收到的数据不空
-        recv_data = serialHandle.read(count)  # 读取接收到的数据
-        # for i in recv_data:
-        #     print('%#x' %ord(i))
-        # 是否是读id指令
+    serialHandle.flushInput()  # Clear input buffer
+    portRead()  # Configure serial for reading
+    time.sleep(0.005)  # Allow time for data to arrive
+    
+    count = serialHandle.inWaiting()  # Check available bytes
+    # print(f"[DEBUG] Bytes waiting in buffer: {count}")  # Debug print
+    
+    if count != 0:
+        recv_data = serialHandle.read(count)  # Read available bytes
+        # print(f"[DEBUG] Raw received data: {recv_data.hex()}")  # Print raw data in hex
+        
         try:
             if recv_data[0] == 0x55 and recv_data[1] == 0x55 and recv_data[4] == cmd:
                 dat_len = recv_data[3]
-                serialHandle.flushInput()  # 清空接收缓存
+                serialHandle.flushInput()  # Clear input buffer
+                
                 if dat_len == 4:
-                    # print ctypes.c_int8(ord(recv_data[5])).value    # 转换成有符号整型
                     return recv_data[5]
                 elif dat_len == 5:
                     pos = 0xffff & (recv_data[5] | (0xff00 & (recv_data[6] << 8)))
@@ -158,9 +155,23 @@ def serial_servo_get_rmsg(cmd):
                     pos2 = 0xffff & (recv_data[7] | (0xff00 & (recv_data[8] << 8)))
                     return ctypes.c_int16(pos1).value, ctypes.c_int16(pos2).value
             else:
+                # print("[DEBUG] Data format incorrect")
+                reset_serial()
                 return None
-        except BaseException as e:
-            print(e)
+
+        except Exception as e:
+            print(f"Error parsing response: {e}")
+            return None
+
     else:
-        serialHandle.flushInput()  # 清空接收缓存
+        # print("[DEBUG] No data received")
+        reset_serial()
+        serialHandle.flushInput()
         return None
+
+def reset_serial():
+    # print("Resetting serial connection...")
+    serialHandle.close()
+    time.sleep(0.01)
+    serialHandle.open()
+    time.sleep(0.01)

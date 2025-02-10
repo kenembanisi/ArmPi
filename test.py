@@ -1,41 +1,73 @@
 from hiwonder import HiwonderRobot
-
+import traceback
 
 def main():
+    robot = None 
+
     try:
         robot = HiwonderRobot()
-
+        
         while True:
-            case = int(input('What control state do you want (1: motor, 2: inidivual joints, 3: all joints)? '))
-            print('\n')
+            print("\nControl Options:")
+            print("0: Read individual joint position")
+            print("1: Set motor speeds")
+            print("2: Control individual joint")
+            print("3: Set all joint positions")
+            print("4: Exit")
 
-            if case == 1:
-                val = input('Insert desired speeds: (e.g., 10, 20, 10, 20) ')
-                speed = [int(s) for s in val.split(',')]
-                robot.set_fixed_speed(speed)
+            try:
+                case = int(input("Select a control state (0-4): ").strip())
+            except ValueError:
+                print("Invalid input. Please enter a number between 0 and 4.")
+                continue
+
+            if case == 0:
+                try:
+                    joint_id = int(input("Enter joint ID (1-6): ").strip())
+                    print(f"Position of joint {joint_id}: {robot.get_joint_value(joint_id)}")
+                except ValueError:
+                    print("Invalid input. Please enter a valid joint ID.")
+
+            elif case == 1:
+                try:
+                    speed = [int(s) for s in input("Enter speeds (e.g., 10,20,10,20): ").split(",")]
+                    robot.set_fixed_speed(speed)
+                except ValueError:
+                    print("Invalid input. Please enter comma-separated integers.")
 
             elif case == 2:
-                val = input('Insert desired joint_id and joint angle: (e.g., 2, 30) ')
-                joint_id, theta = [int(s) for s in val.split(',')]
-                robot.set_joint_value(joint_id, theta)
+                try:
+                    joint_id, theta = [int(s) for s in input("Enter joint ID and angle (e.g., 2,30): ").split(",")]
+                    robot.set_joint_value(joint_id, theta)
+                    print(f"Position of joint {joint_id}: {robot.get_joint_value(joint_id)}")
+                except ValueError:
+                    print("Invalid input. Please enter valid numbers.")
 
             elif case == 3:
-                val = input('Insert desired joint angles: (e.g., 2, 30, 20, 20, 30, 10) ')
-                thetalist = [int(s) for s in val.split(',')]
-                robot.set_joint_values(thetalist)
+                try:
+                    thetalist = [int(s) for s in input("Enter joint angles (e.g., 2,30,20,20,30,10): ").split(",")]
+                    robot.set_joint_values(thetalist)
+                except ValueError:
+                    print("Invalid input. Please enter valid numbers.")
+
+            elif case == 4:
+                print("Exiting program.")
+                break
 
             else:
-                print('Please check entry!')
-                raise ValueError
-            
-            robot.read_data()
+                print("Invalid selection. Please enter a number between 0 and 4.")
 
     except KeyboardInterrupt:
-        robot.stop_motors()
-        
+        print("\nKeyboard interrupt detected. Stopping motors and exiting.")
+    
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        traceback.print_exc() 
 
+    finally:
+        if robot is not None:
+            print("Ensuring motors are stopped before exiting.")
+            # robot.stop_motors()
 
 if __name__ == "__main__":
     main()
-
-
