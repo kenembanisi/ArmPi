@@ -2,6 +2,7 @@ from hiwonder import HiwonderRobot
 from gamepad_control import GamepadControl
 import time
 import threading
+import utils
 
 # TODO: Fix the issue with mobile base directions not working right and turning in place not working
 # TODO: Determine a mapping from -128 to 128 for EE velocity (xyz)
@@ -39,8 +40,10 @@ def main():
             if len(cmdlist) > 1:
                 cmds = cmdlist[-1]            
 
-                print(f'MOBILE = [{i}][{round(cmds.base_vx,3)} {round(cmds.base_vy,3)} {round(cmds.base_w,3)}]')
-                print(f'ARM = [{i}][{round(cmds.arm_vx,3)} {round(cmds.arm_vy,3)} {round(cmds.arm_vz,3)}] \n')
+                # print(f'MOBILE = [{i}][{round(cmds.base_vx,3)} {round(cmds.base_vy,3)} {round(cmds.base_w,3)}]')
+                # print(f'ARM = [{i}][{round(cmds.arm_vx,3)} {round(cmds.arm_vy,3)} {round(cmds.arm_vz,3)}] \n')
+
+                utils.print_dataclass(cmds)
             
             robot.set_robot_velocity(cmds)
 

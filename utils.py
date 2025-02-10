@@ -35,6 +35,18 @@ class GamepadCmds:
     arm_vx: int = 0
     arm_vy: int = 0
     arm_vz: int = 0
+    arm_j1: int = 0
+    arm_j2: int = 0
+    arm_j3: int = 0
+    arm_j4: int = 0
+    arm_j5: int = 0
+    arm_ee: int = 0
+
+def print_dataclass(obj):
+    print("------------------------------------")
+    for field in obj.__dataclass_fields__:
+        print(f"{field}: {round(getattr(obj, field), 3)}")
+    print("------------------------------------ \n")
 
 
 class EndEffector:

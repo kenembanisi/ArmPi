@@ -16,6 +16,13 @@ class GamepadControl():
         # initialize variables
         self.MOBILE_BASE_FLAG = False
         self.ARM_FLAG = False
+        self.ARM_J1_FLAG = False
+        self.ARM_J2_FLAG = False
+        self.ARM_J3_FLAG = False
+        self.ARM_J4_FLAG = False
+        self.ARM_J5_FLAG = False
+        self.ARM_EE_FLAG = False
+
 
 
     
@@ -58,6 +65,18 @@ class GamepadControl():
                         self.MOBILE_BASE_FLAG = bool(event.state)
                     if event.code == 'BTN_Z':
                         self.ARM_FLAG = bool(event.state)
+                    if event.code == 'BTN_NORTH':
+                        self.ARM_J1_FLAG = bool(event.state)
+                    if event.code == 'BTN_C':
+                        self.ARM_J2_FLAG = bool(event.state)
+                    if event.code == 'BTN_EAST':
+                        self.ARM_J3_FLAG = bool(event.state)
+                    if event.code == 'BTN_SOUTH':
+                        self.ARM_J4_FLAG = bool(event.state)
+                    if event.code == 'BTN_TR':
+                        self.ARM_J5_FLAG = bool(event.state)
+                    if event.code == 'BTN_TL':
+                        self.ARM_EE_FLAG = bool(event.state)
             
             if self.MOBILE_BASE_FLAG:
                 # we set the range for vx, vy to -0.5 m/s to 0.5 m/s
@@ -76,6 +95,15 @@ class GamepadControl():
                 gamepad_cmds.arm_vy = self.map_value(self.abs_y, 0.2, -0.2)
                 gamepad_cmds.arm_vz = self.map_value(self.abs_z, -0.2, 0.2)
             
+            gamepad_cmds.arm_j1 = self.map_value(self.abs_x, -0.1, 0.1) if self.ARM_J1_FLAG else 0.0
+            gamepad_cmds.arm_j2 = self.map_value(self.abs_x, -0.1, 0.1) if self.ARM_J2_FLAG else 0.0
+            gamepad_cmds.arm_j3 = self.map_value(self.abs_x, -0.1, 0.1) if self.ARM_J3_FLAG else 0.0
+            gamepad_cmds.arm_j4 = self.map_value(self.abs_x, -0.1, 0.1) if self.ARM_J4_FLAG else 0.0
+            gamepad_cmds.arm_j5 = self.map_value(self.abs_x, -0.1, 0.1) if self.ARM_J5_FLAG else 0.0
+            gamepad_cmds.arm_ee = 1.0 if self.ARM_EE_FLAG else 0.0
+
+
+
             self.gamepad_cmds_prev = gamepad_cmds
         
             return gamepad_cmds
