@@ -1,20 +1,19 @@
 import os, sys
-# print(os.getcwd())
-sys.path.append(os.getcwd()+'/HiwonderSDK/')
-from HiwonderSDK import Board
-from smbus2 import SMBus
 import time
 import numpy as np
-from threading import Thread
 import struct
-import utils as ut
+from threading import Thread
+from smbus2 import SMBus
+from hiwonder_servo_serialproxy import SerialProxy
 from arm_models import FiveDOFRobot
+import utils as ut
 
 
 # Define constants
 MOTOR_TYPE_JGB37_520_12V_110RPM = 3 # the magnetic ring generates 44 pulses per revolution, combined with a gear reduction ratio of 90 Default
 
 I2C_PORT = 1
+SERIAL_PORT = '/dev/ttyS0'
 ENCODER_MOTOR_MODULE_ADDR = 0x34
 MOTOR_TYPE_ADDR = 20 #0x20
 MOTOR_ENCODER_POLARITY_ADDR = 21 #0x21
@@ -30,31 +29,37 @@ BASE_LENGTH_X = 0.096 # m
 BASE_LENGTH_Y = 0.105 # m
 
 
+
 class HiwonderRobot():
 
     def __init__(self):
         # initialize the i2c bus & module board
         self.bus = SMBus(I2C_PORT) # assuming the first (and perhaps only) i2c device
-        self.board = Board
+        # self.board = Board
+
+        # initialize serial proxy
+        self.serial_proxy = SerialProxy(port_name=SERIAL_PORT)
+        self.serial_proxy.connect()
 
         # initialize chassis motors
         self.initialize_motors()
         
         self.speed_control_delay = 0.25
         self.joint_control_delay = 0.25
-
         self._batt_vol = None
         self._encoder_data = None
 
         # create a thread to handle reading data from the board
-        # self.thread = Thread(target=self.read_data())
-        # self.thread.daemon = True
-        # self.thread.start()
-        # self.thread.join()
+        self.thread = Thread(target=self.read_data, daemon=True)
+        self.thread.start()
 
         # initialize the five-dof robot model
         self.model = FiveDOFRobot()
 
+
+    # -------------------------------------------------------------
+    # methods for interfacing with the mobile base
+    # -------------------------------------------------------------
 
     def initialize_motors(self):
         # initialize chassis motors
@@ -65,18 +70,16 @@ class HiwonderRobot():
 
         print('Encoder motor driver module has been initialized!! \n')
 
-    
+
     def set_fixed_speed(self, speed: list):
         # uses MOTOR_FIXED_SPEED_ADDR to set speed
         if len(speed) != 4:
-            print('Please set correct size of speed...')
-            raise ValueError
-        else:
-            # wheel speed range is -100 to 100
-            np.clip(speed, -100, 100)
-            speed_ = [int(s) for s in speed]
-            self.bus.write_i2c_block_data(ENCODER_MOTOR_MODULE_ADDR, MOTOR_FIXED_SPEED_ADDR, speed_)
-            time.sleep(self.speed_control_delay)
+            raise ValueError("Speed list must contain exactly 4 values.")
+        # wheel speed range is -100 to 100
+        np.clip(speed, -100, 100)
+        speed_ = [int(s) for s in speed]
+        self.bus.write_i2c_block_data(ENCODER_MOTOR_MODULE_ADDR, MOTOR_FIXED_SPEED_ADDR, speed_)
+        time.sleep(self.speed_control_delay)
 
 
     def set_robot_velocity(self, cmd: ut.GamepadCmds):
@@ -124,8 +127,6 @@ class HiwonderRobot():
         self.set_fixed_speed(speed)
 
         
-
-
     def set_arm_velocity(self, vel: list):
         # calculate the joint velocities
         thetadot = self.model.calc_velocity_kinematics(vel)
@@ -144,35 +145,35 @@ class HiwonderRobot():
         self.set_joint_values(theta)
 
 
+    def read_data(self):
+        while True:
+            try:
+                self._batt_vol = self.bus.read_i2c_block_data(ENCODER_MOTOR_MODULE_ADDR, ADC_BAT_ADDR, 2)
+                self._encoder_data = struct.unpack('iiii', bytes(self.bus.read_i2c_block_data(ENCODER_MOTOR_MODULE_ADDR, MOTOR_ENCODER_TOTAL_ADDR, 16)))
+                time.sleep(0.05)
+            except Exception as e:
+                print(f"Error reading data: {e}")
+
+        
     def stop_motors(self):
         stop_speed = [0]*4
         self.bus.write_i2c_block_data(ENCODER_MOTOR_MODULE_ADDR, MOTOR_FIXED_SPEED_ADDR, stop_speed)
         print('Stopping Motors!!')
 
+    # -------------------------------------------------------------
+    # methods for interfacing with the 5dof arm
+    # -------------------------------------------------------------
 
     def set_joint_value(self, joint_id: int, theta: float, radians = False):
-        if joint_id > 6 or joint_id < 1:
-            print('Please set correct joint id within range (1-6)...')
-            raise ValueError
+        if not (1 <= joint_id <= 6):
+            raise ValueError("Joint ID must be between 1 and 6.")
         if radians:
             theta = np.rad2deg(theta)
-        self.board.setBusServoPulse(joint_id, self.map_value(theta), 500)
+        theta = np.clip(theta, -150, 150)
+        # self.board.setBusServoPulse(joint_id, self.map_value(theta), 500)
+        self.serial_proxy.set_position(joint_id, self.map_value(theta), 500)
         time.sleep(self.joint_control_delay)
-    
-    
-    def get_joint_value(self, joint_id: int):
-        if joint_id > 6 or joint_id < 1:
-            print('Please set correct joint id within range (1-6)...')
-            raise ValueError
-        return self.board.getBusServoPulse(joint_id)
-    
 
-    def get_joint_values(self):
-        theta = [0, 0, 0, 0, 0, 0]
-        for id in range(len(theta)):
-            theta[id] = self.board.getBusServoPulse(id)
-        return theta
-    
 
     def set_joint_values(self, thetalist: list, radians = False):
         if len(thetalist) != 6:
@@ -182,9 +183,22 @@ class HiwonderRobot():
             for i in range(len(thetalist)):
                 thetalist[i] = np.rad2deg(thetalist[i])
         for id, th in enumerate(thetalist):
-            self.board.setBusServoPulse(id, self.map_value(th), 500)
+            # self.board.setBusServoPulse(id, self.map_value(th), 500)
+            self.serial_proxy.set_position(id, self.map_value(th), 500)
             time.sleep(self.joint_control_delay)
+   
     
+    def get_joint_value(self, joint_id: int):
+        if joint_id >= len(self.serial_proxy.current_state):
+            print('Please set correct joint id within range (1-6)...')
+            raise ValueError
+        # return self.board.getBusServoPulse(joint_id)
+        return self.serial_proxy.current_state[joint_id]
+    
+    
+    def get_joint_values(self):
+        return [self.serial_proxy.current_state[id] if id < len(self.serial_proxy.current_state) else None for id in range(6)]
+
 
     def map_value(self, x: float):
         hw_min, hw_max = 0, 1000 # defined by the driver
@@ -192,15 +206,3 @@ class HiwonderRobot():
         return int((x - joint_min) * (hw_max - hw_min) / (joint_max - joint_min) + hw_min)
 
 
-    def read_data(self):
-        # while True:
-        # read battery data
-        self._batt_vol = self.bus.read_i2c_block_data(ENCODER_MOTOR_MODULE_ADDR, ADC_BAT_ADDR, 2)
-        # print("V = {0}mV".format(self._batt_vol[0]+(self._batt_vol[1]<<8)))
-        
-        # read encoder data
-        self._encoder_data = struct.unpack('iiii',bytes(self.bus.read_i2c_block_data(ENCODER_MOTOR_MODULE_ADDR, MOTOR_ENCODER_TOTAL_ADDR,16)))
-        # print("Encode1 = {0}  Encode2 = {1}  Encode3 = {2}  Encode4 = {3}".format(Encode[0],Encode[1],Encode[2],Encode[3]))
-        # time.sleep(0.05)
-
-        

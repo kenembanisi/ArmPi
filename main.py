@@ -3,6 +3,10 @@ from gamepad_control import GamepadControl
 import time
 import threading
 
+# TODO: Fix the issue with mobile base directions not working right and turning in place not working
+# TODO: Determine a mapping from -128 to 128 for EE velocity (xyz)
+# TODO: Get RRMC working for the arm
+# TODO: Implement a gamepad independent joint control
 
 cmdlist = []
 gpc = GamepadControl()
@@ -31,12 +35,12 @@ def main():
         i = 0
         while True:
             
-            cmds = GamepadControl()
+            # cmds = GamepadControl()
             if len(cmdlist) > 1:
                 cmds = cmdlist[-1]            
 
-            print(f'MOBILE = [{i}][{round(cmds.base_vx,3)} {round(cmds.base_vy,3)} {round(cmds.base_w,3)}]')
-            # print(f'ARM = [{cmds.arm_vx} {cmds.arm_vy} {cmds.arm_vz}] \n')
+                print(f'MOBILE = [{i}][{round(cmds.base_vx,3)} {round(cmds.base_vy,3)} {round(cmds.base_w,3)}]')
+                print(f'ARM = [{i}][{round(cmds.arm_vx,3)} {round(cmds.arm_vy,3)} {round(cmds.arm_vz,3)}] \n')
             
             robot.set_robot_velocity(cmds)
 

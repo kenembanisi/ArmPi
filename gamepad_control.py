@@ -60,10 +60,8 @@ class GamepadControl():
                         self.ARM_FLAG = bool(event.state)
             
             if self.MOBILE_BASE_FLAG:
-
-                # we set the range for vx, vy to -1 m/s to 1 m/s
+                # we set the range for vx, vy to -0.5 m/s to 0.5 m/s
                 # w = -0.5 rad/s to 0.5 rad/s
-
                 gamepad_cmds.base_vx = self.map_value(self.abs_x, 0.5, -0.5)
                 gamepad_cmds.base_vy = self.map_value(self.abs_y, 0.5, -0.5)
                 gamepad_cmds.base_w = self.map_value(self.abs_z, -0.5, 0.5)
@@ -73,9 +71,10 @@ class GamepadControl():
                 #        w = [{self.abs_z} -> {gamepad_cmds.base_w}]')
 
             if self.ARM_FLAG:
-                gamepad_cmds.arm_vx = self.abs_x
-                gamepad_cmds.arm_vy = self.abs_y
-                gamepad_cmds.arm_vz = self.abs_z
+                # we set the range for vx, vy, vz to -0.2 m/s to 0.2 m/s
+                gamepad_cmds.arm_vx = self.map_value(self.abs_x, -0.2, 0.2)
+                gamepad_cmds.arm_vy = self.map_value(self.abs_y, 0.2, -0.2)
+                gamepad_cmds.arm_vz = self.map_value(self.abs_z, -0.2, 0.2)
             
             self.gamepad_cmds_prev = gamepad_cmds
         
@@ -85,4 +84,5 @@ class GamepadControl():
     def map_value(self, x: float, hw_min=0, hw_max=1):
         # hw_min, hw_max = 0, 1000 # defined by the driver
         joint_min, joint_max = 0, 255
-        return (x - joint_min) * (hw_max - hw_min) / (joint_max - joint_min) + hw_min
+        val = (x - joint_min) * (hw_max - hw_min) / (joint_max - joint_min) + hw_min
+        return val if abs(val) > 0.005 else 0.0
